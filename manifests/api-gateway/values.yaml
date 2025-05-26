@@ -14,31 +14,12 @@ service:
 readinessProbe:
   path: /actuator/health
   port: 8080
-  initialDelaySeconds: 90
-  periodSeconds: 30
+  initialDelaySeconds: 30 
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6 
 
 env:
   - name: SPRING_PROFILES_ACTIVE
     value: dev
-  - name: SPRING_ZIPKIN_BASE_URL
-    value: http://zipkin:9411/
-  - name: eureka.client.service-url.defaultZone
-    value: http://discovery:8761/eureka
-  - name: EUREKA_INSTANCE_HOSTNAME
-    value: api-gateway
-  - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
-    value: "true"
-  - name: EUREKA_CLIENT_FETCH_REGISTRY
-    value: "true"
-  - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
-    value: "false"
-  - name: EUREKA_CLIENT_HEALTHCHECK_ENABLED
-    value: "true"
-  - name: EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS
-    value: "10"
-  - name: EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS
-    value: "30"
-  - name: EUREKA_CLIENT_REGION
-    value: default
-  - name: EUREKA_CLIENT_AVAILABILITY_ZONES_DEFAULT
-    value: defaultZone
+
