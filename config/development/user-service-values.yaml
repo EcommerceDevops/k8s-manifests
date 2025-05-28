@@ -1,0 +1,12 @@
+replicaCount: 1
+
+image:
+  repository: user-service
+
+service:
+  port: 8700
+
+containerPort: 8700
+
+readinessProbe:
+  path: /user-service/actuator/health

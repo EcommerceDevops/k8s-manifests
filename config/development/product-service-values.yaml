@@ -1,0 +1,12 @@
+fullnameOverride: product-service
+
+image:
+  repository: product-service
+
+service:
+  port: 8500
+
+readinessProbe:
+  path: /product-service/actuator/health
+  port: 8500
+

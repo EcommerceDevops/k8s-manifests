@@ -1,0 +1,13 @@
+fullnameOverride: proxy-client
+
+image:
+  repository: proxy-client
+
+service:
+  type: LoadBalancer
+  port: 8900
+
+readinessProbe:
+  path: /app/actuator/health
+  port: 8900
+

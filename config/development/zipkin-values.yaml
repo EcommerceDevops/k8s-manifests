@@ -1,9 +1,6 @@
-replicaCount: 1
-
 image:
   repository: openzipkin/zipkin
   tag: latest
-  pullPolicy: IfNotPresent  
 
 service:
   # Cluster IP configuration define that the service is only accesible from cluster 
@@ -13,5 +10,3 @@ service:
 readinessProbe:
   path: /health
   port: 9411
-  initialDelaySeconds: 30
-  periodSeconds: 10

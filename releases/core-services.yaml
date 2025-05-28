@@ -1,0 +1,40 @@
+releases:
+  - name: zipkin
+    namespace: "{{ .Environment.Values.applicationNamespace }}"
+    chart: ../charts/zipkin 
+    version: "1.0.0"
+    values:
+      - "../config/{{ .Environment.Name }}/values.yaml" 
+      - "../config/{{ .Environment.Name }}/zipkin-values.yaml" 
+
+  - name: discovery
+    namespace: "{{ .Environment.Values.applicationNamespace }}"
+    chart: ../charts/discovery
+    version: "1.0.0"
+    values:
+      - "../config/{{ .Environment.Name }}/values.yaml"
+      - "../config/{{ .Environment.Name }}/discovery-values.yaml"
+
+  - name: cloud-config
+    namespace: "{{ .Environment.Values.applicationNamespace }}"
+    chart: ../charts/cloud-config
+    version: "1.0.0"
+    values:
+      - "../config/{{ .Environment.Name }}/values.yaml"
+      - "../config/{{ .Environment.Name }}/cloud-config-values.yaml"
+
+  - name: api-gateway
+    namespace: "{{ .Environment.Values.applicationNamespace }}"
+    chart: ../charts/api-gateway
+    version: "1.0.0"
+    values:
+      - "../config/{{ .Environment.Name }}/values.yaml"
+      - "../config/{{ .Environment.Name }}/api-gateway-values.yaml"
+
+  - name: proxy-client
+    namespace: "{{ .Environment.Values.applicationNamespace }}"
+    chart: ../charts/proxy-client
+    version: "1.0.0"
+    values:
+      - "../config/{{ .Environment.Name }}/values.yaml"
+      - "../config/{{ .Environment.Name }}/proxy-client-values.yaml"

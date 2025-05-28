@@ -1,0 +1,12 @@
+fullnameOverride: discovery
+
+image:
+  repository: service-discovery
+
+service:
+  type: LoadBalancer
+  port: 8761
+
+readinessProbe:
+  path: /actuator/health
+  port: 8761

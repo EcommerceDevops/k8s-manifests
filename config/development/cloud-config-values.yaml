@@ -1,0 +1,13 @@
+fullnameOverride: cloud-config
+
+image:
+  repository: cloud-config
+
+service:
+  type: LoadBalancer
+  port: 9296
+
+readinessProbe:
+  path: /actuator/health
+  port: 9296
+

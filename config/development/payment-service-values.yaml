@@ -1,0 +1,12 @@
+fullnameOverride: payment-service
+
+image:
+  repository: payment-service
+
+service:
+
+  port: 8400
+
+readinessProbe:
+  path: /payment-service/actuator/health
+  port: 8400

@@ -1,0 +1,26 @@
+releases:
+  - name: linkerd-crds
+    namespace: "{{ .Environment.Values.linkerd.namespace }}" 
+    chart: linkerd-edge/linkerd-crds
+    version: "2025.5.4"
+    values:
+      - installGatewayAPI: "{{ .Environment.Values.linkerd.installGatewayAPI | default true }}"
+
+  - name: linkerd-control-plane
+    namespace: "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}"
+    chart: linkerd-edge/linkerd-control-plane
+    version: "2025.5.4"
+    needs:
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-crds"
+    values:
+      - "../config/{{ .Environment.Name }}/secrets/linkerd-secrets.yaml" 
+      - proxyInit:
+          runAsRoot: true 
+
+  - name: linkerd-viz
+    namespace: default
+    chart: linkerd/linkerd-viz
+    version: "30.12.11"
+    createNamespace: true
+    needs:
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-control-plane"

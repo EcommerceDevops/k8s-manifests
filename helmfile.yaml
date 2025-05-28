@@ -1,0 +1,44 @@
+environments:
+  development:
+    values:
+      - "./config/development/values.yaml"
+
+repositories:
+  - name: linkerd-edge
+    url: https://helm.linkerd.io/edge
+  - name: linkerd
+    url: https://helm.linkerd.io/stable
+hooks:
+  - name: "Annotate Linkerd's own namespace for injection"
+    events: ["presync"]
+    showlogs: false
+    command: "kubectl"
+    args:
+      - "annotate"
+      - "namespace"
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}"
+      - "linkerd.io/inject=enabled"
+      - "--overwrite"
+  - name: "Annotate application namespace for Linkerd injection"
+    events: ["presync"]
+    showlogs: false
+    command: "kubectl"
+    args:
+      - "annotate"
+      - "namespace"
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+      - "linkerd.io/inject=enabled"
+      - "--overwrite"
+---
+
+#helmfiles:
+#  - path: releases/linkerd-stack.yaml  
+#  - path: releases/core-services.yaml
+#  - path: releases/app-services.yaml
+
+releases:
+  - name: test-dummy-release
+    chart: stable/nginx-ingress # O cualquier chart simple de un repo que tengas
+    version: "1.41.3" # Asegúrate que la versión exista
+    namespace: test-namespace
+    createNamespace: true

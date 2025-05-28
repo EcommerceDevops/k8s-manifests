@@ -1,0 +1,14 @@
+fullnameOverride: api-gateway
+
+image:
+  repository: api-gateway
+
+
+service:
+  port: 8080
+
+readinessProbe:
+  path: /actuator/health
+  port: 8080 
+
+  

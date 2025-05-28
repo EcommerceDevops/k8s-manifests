@@ -1,0 +1,11 @@
+fullnameOverride: shipping-service
+
+image:
+  repository: shipping-service
+
+service:
+  port: 8600
+
+readinessProbe:
+  path: /shipping-service/actuator/health
+  port: 8600

@@ -1,0 +1,13 @@
+replicaCount: 1
+
+image:
+  repository: favourite-service
+
+
+service:
+  port: 8800
+
+containerPort: 8800
+
+readinessProbe:
+  path: /favourite-service/actuator/health

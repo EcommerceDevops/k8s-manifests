@@ -25,4 +25,7 @@ build/
 
 ### VS Code ###
 .vscode/
-.env
+.env    
+linkerdCerts/
+.sops.yaml
+config/development/secrets/linkerd-secrets.yaml

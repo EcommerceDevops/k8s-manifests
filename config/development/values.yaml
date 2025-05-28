@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  tag: dev
+  pullPolicy: IfNotPresent
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka
+
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+service:
+  type: ClusterIP 
+
+# Name of linkerd namespace
+linkerd:
+  installGatewayAPI: true
+  namespace: linkerd 
+  proxyInitRunAsRoot: true 
+
+applicationNamespace: default
+  
+
+ 
+
+

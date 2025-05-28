@@ -1,0 +1,11 @@
+fullnameOverride: order-service
+
+image:
+  repository: order-service
+
+service:
+  port: 8300
+
+readinessProbe:
+  path: /order-service/actuator/health
+  port: 8300
