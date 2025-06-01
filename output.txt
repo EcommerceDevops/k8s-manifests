@@ -1,0 +1,2 @@
+in ./helmfile.yaml: failed to read helmfile.yaml: reading document at index 1. Started seeing this since Helmfile v1? Add the .gotmpl file extension: yaml: unmarshal errors:
+  line 12: field prepare not found in type state.helmStateAlias

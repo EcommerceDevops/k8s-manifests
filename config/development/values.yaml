@@ -30,7 +30,5 @@ linkerd:
 
 applicationNamespace: default
   
-
- 
-
+unValorDePrueba: "Hola desde dev values"
 

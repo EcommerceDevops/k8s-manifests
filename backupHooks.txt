@@ -1,0 +1,120 @@
+  - name: zipkin
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/zipkin
+    version: "1.0.0"
+    needs:
+      - "default/linkerd-viz" # Asegúrate que linkerd-viz dependa de linkerd-control-plane
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
+    hooks:
+    - name: "Wait for linkerd-control-plane to be ready" # Este hook ya lo tienes y es bueno.
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          NAMESPACE="{{ .Environment.Values.linkerd.namespace | default "linkerd" }}"
+          echo "Waiting for all pods in Linkerd namespace ($NAMESPACE) to be Ready for Zipkin..."
+          kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=180s
+          echo "All Linkerd control-plane pods are ready."
+
+  - name: discovery
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/discovery
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/zipkin"
+    hooks: # <-- Añadido/Modificado
+    - name: "Wait for Zipkin service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS="{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+          # IMPORTANTE: Cambia 'deployment/zipkin' si tu chart de Zipkin usa un nombre diferente
+          # o si es un StatefulSet, etc. Podrías usar 'kubectl wait --for=condition=Ready pod -l app=zipkin ...'
+          echo "Waiting for Zipkin deployment in namespace $APP_NS to be available for Discovery..."
+          kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=300s
+          echo "Zipkin service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+
+  - name: cloud-config
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/cloud-config
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/discovery"
+    hooks: # <-- Añadido/Modificado
+    - name: "Wait for Discovery service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS="{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+          # IMPORTANTE: Cambia 'deployment/discovery' si tu chart de Discovery usa un nombre diferente.
+          echo "Waiting for Discovery deployment in namespace $APP_NS to be available for Cloud-Config..."
+          kubectl wait --for=condition=Available deployment/discovery -n "$APP_NS" --timeout=300s
+          echo "Discovery service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/cloud-config-values.yaml"
+
+  - name: api-gateway
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/api-gateway
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    hooks: # <-- Añadido/Modificado
+    - name: "Wait for Cloud-Config service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS="{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+          # IMPORTANTE: Cambia 'deployment/cloud-config' si tu chart de Cloud-Config usa un nombre diferente.
+          echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for API-Gateway..."
+          kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+          echo "Cloud-Config service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/api-gateway-values.yaml"
+
+  - name: proxy-client
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/proxy-client
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    hooks: # <-- Añadido/Modificado
+    - name: "Wait for Cloud-Config service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS="{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+          # IMPORTANTE: Cambia 'deployment/cloud-config' si tu chart de Cloud-Config usa un nombre diferente.
+          echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Proxy-Client..."
+          kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+          echo "Cloud-Config service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/proxy-client-values.yaml"
+

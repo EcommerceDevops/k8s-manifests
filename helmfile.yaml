@@ -8,37 +8,137 @@ repositories:
     url: https://helm.linkerd.io/edge
   - name: linkerd
     url: https://helm.linkerd.io/stable
+
 hooks:
-  - name: "Annotate Linkerd's own namespace for injection"
-    events: ["presync"]
-    showlogs: false
+  - name: "Annotate Default Namespace for Linkerd Injection" 
+    events: ["prepare"] 
+    showlogs: true    
     command: "kubectl"
     args:
       - "annotate"
       - "namespace"
-      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}"
-      - "linkerd.io/inject=enabled"
-      - "--overwrite"
-  - name: "Annotate application namespace for Linkerd injection"
-    events: ["presync"]
-    showlogs: false
-    command: "kubectl"
-    args:
-      - "annotate"
-      - "namespace"
-      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
-      - "linkerd.io/inject=enabled"
-      - "--overwrite"
+      - "default"                     
+      - "linkerd.io/inject=enabled"   
+      - "--overwrite"                 
+
 ---
 
-#helmfiles:
-#  - path: releases/linkerd-stack.yaml  
-#  - path: releases/core-services.yaml
-#  - path: releases/app-services.yaml
-
 releases:
-  - name: test-dummy-release
-    chart: stable/nginx-ingress # O cualquier chart simple de un repo que tengas
-    version: "1.41.3" # Asegúrate que la versión exista
-    namespace: test-namespace
-    createNamespace: true
+  
+  - name: linkerd-crds
+    namespace: "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}"
+    chart: linkerd-edge/linkerd-crds
+    version: "2025.5.4" 
+    values:
+      - installGatewayAPI: "{{ .Environment.Values.linkerd.installGatewayAPI | default true }}"
+    
+
+  - name: linkerd-control-plane
+    namespace: "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}"
+    chart: linkerd-edge/linkerd-control-plane
+    version: "2025.5.4" 
+    needs:
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-crds"
+    values:
+      - "./config/development/secrets/linkerd-secrets.yaml"
+      - proxyInit:
+          runAsRoot: true
+    hooks:  
+    - name: "Wait for Linkerd CRDs to be established"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          CRDS_TO_WAIT_FOR=(
+          "authorizationpolicies.policy.linkerd.io"        
+          "egressnetworks.policy.linkerd.io"               
+          "externalworkloads.workload.linkerd.io"          
+          "httplocalratelimitpolicies.policy.linkerd.io"   
+          "httproutes.policy.linkerd.io"                   
+          "meshtlsauthentications.policy.linkerd.io"       
+          "networkauthentications.policy.linkerd.io"       
+          "serverauthorizations.policy.linkerd.io"         
+          "servers.policy.linkerd.io"                      
+          "serviceprofiles.linkerd.io"
+          )
+          echo "Waiting for Linkerd CRDs to be established before deploying control-plane..."
+          for crd in "${CRDS_TO_WAIT_FOR[@]}"; do
+            echo "Waiting for CRD: $crd"
+            kubectl wait --for condition=established "crd/$crd" --timeout=180s
+          done
+          echo "All specified Linkerd CRDs are established."
+
+          
+  - name: zipkin
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/zipkin
+    version: "1.0.0"
+    needs:
+      - "linkerd/linkerd-control-plane" 
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
+    hooks:
+    - name: "Wait for linkerd-control-plane to be ready" # Este hook ya lo tienes y es bueno.
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          NAMESPACE="{{ .Environment.Values.linkerd.namespace | default "linkerd" }}"
+          echo "Waiting for all pods in Linkerd namespace ($NAMESPACE) to be Ready for Zipkin..."
+          kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=180s
+          echo "All Linkerd control-plane pods are ready."
+          
+
+  - name: discovery
+    namespace: '{{ .Environment.Values.applicationNamespace | default "default" }}'
+    chart: ./charts/discovery
+    version: "1.0.0"
+    needs:  
+      - '{{ .Environment.Values.applicationNamespace | default "default" }}/zipkin'
+    hooks: # 
+    - name: "Wait for Zipkin service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS='{{ .Environment.Values.applicationNamespace | default "default" }}'
+          echo "Waiting for Zipkin deployment in namespace $APP_NS to be available for Discovery..."
+          kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=300s
+          echo "Zipkin service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+
+  - name: cloud-config
+    namespace: '{{ .Environment.Values.applicationNamespace | default "default" }}'
+    chart: ./charts/cloud-config
+    version: "1.0.0"
+    needs:
+      - '{{ .Environment.Values.applicationNamespace | default "default" }}/discovery'
+    hooks: 
+    - name: "Wait for Discovery service to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          APP_NS='{{ .Environment.Values.applicationNamespace | default "default" }}'
+          # IMPORTANTE: Cambia 'deployment/discovery' si tu chart de Discovery usa un nombre diferente.
+          echo "Waiting for Discovery deployment in namespace $APP_NS to be available for Cloud-Config..."
+          kubectl wait --for=condition=Available deployment/discovery -n "$APP_NS" --timeout=300s
+          echo "Discovery service is ready."
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/cloud-config-values.yaml"

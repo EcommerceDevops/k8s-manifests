@@ -1,0 +1,139 @@
+    - name: linkerd-viz
+    namespace: default
+    chart: linkerd/linkerd-viz
+    version: "30.12.11" 
+    createNamespace: true
+    needs:
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-control-plane"
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-crds"
+    hooks:
+    - name: "Wait for linkerd-control-plane to be ready"
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          NAMESPACE="{{ .Environment.Values.linkerd.namespace | default "linkerd" }}"
+          echo "Waiting for all pods in namespace $NAMESPACE to be Ready..."
+          kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=180s
+          echo "All Linkerd control-plane pods are ready."
+
+  
+  # --- Core Microservices ---
+  - name: zipkin
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/zipkin
+    version: "1.0.0"
+    # createNamespace: true # Opcional
+    needs:
+      - "default/linkerd-viz"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
+
+  - name: discovery
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/discovery
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/zipkin"
+      - "{{ .Environment.Values.linkerd.namespace | default \"linkerd\" }}/linkerd-control-plane"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+
+  - name: cloud-config
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/cloud-config
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/discovery"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/cloud-config-values.yaml"
+
+  - name: api-gateway
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/api-gateway
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/api-gateway-values.yaml"
+
+  - name: proxy-client
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/proxy-client
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/proxy-client-values.yaml"
+
+  # --- Secundary Microservices ---
+
+
+  - name: user-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/user-service
+    version: "1.0.0"
+    needs:
+      # Los servicios secundarios (como grupo) dependen de cloud-config.
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/user-service-values.yaml"
+
+  - name: favourite-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/favourite-service
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/favourite-service-values.yaml"
+
+  - name: order-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/order-service
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/order-service-values.yaml"
+
+  - name: payment-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/payment-service
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/payment-service-values.yaml"
+
+  - name: product-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/product-service
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/product-service-values.yaml"
+
+  - name: shipping-service
+    namespace: "{{ .Environment.Values.applicationNamespace | default \"default\" }}"
+    chart: ./charts/shipping-service
+    version: "1.0.0"
+    needs:
+      - "{{ .Environment.Values.applicationNamespace | default \"default\" }}/cloud-config"
+    values:
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/shipping-service-values.yaml"
