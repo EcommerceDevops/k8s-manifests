@@ -1,0 +1,5 @@
+# ./config/staging/values.yaml
+
+chaosMesh:
+  enabled: true
+  namespace: chaos-mesh

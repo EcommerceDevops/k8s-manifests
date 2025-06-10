@@ -29,6 +29,5 @@ linkerd:
   proxyInitRunAsRoot: true 
 
 applicationNamespace: default
-  
-unValorDePrueba: "Hola desde dev values"
+
 

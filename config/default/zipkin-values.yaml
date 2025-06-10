@@ -1,0 +1,12 @@
+image:
+  repository: openzipkin/zipkin
+  tag: latest
+
+service:
+  # Cluster IP configuration define that the service is only accesible from cluster 
+  type: LoadBalancer
+  port: 9411
+
+readinessProbe:
+  path: /health
+  port: 9411

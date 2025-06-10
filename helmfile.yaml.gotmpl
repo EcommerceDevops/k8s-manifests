@@ -1,3 +1,169 @@
+
+
+environments:
+  development:
+    values:
+      - "./config/default/values.yaml"
+      - value:
+        - "./config/development/values.yaml"
+        missingFileHandler: Skip
+
+  staging:
+    values:
+      - "./config/default/values.yaml"
+      - "./config/staging/values.yaml" # Has the chaos mesh basic configuration on ir
+        
+
+repositories:
+  - name: linkerd-edge
+    url: https://helm.linkerd.io/edge
+  - name: linkerd
+    url: https://helm.linkerd.io/stable
+  - name: chaos-mesh
+    url: https://charts.chaos-mesh.org
+
+hooks:
+  - name: "Annotate Default Namespace for Linkerd Injection"
+    events: ["prepare"]
+    showlogs: true
+    command: "kubectl"
+    args:
+      - "annotate"
+      - "namespace"
+      - "default"
+      - "linkerd.io/inject=enabled"
+      - "--overwrite"
+
+---
+releases:
+  - name: linkerd-crds
+    namespace: '{{ .Values | get "linkerd.namespace" "linkerd" }}'
+    chart: linkerd-edge/linkerd-crds
+    version: "2025.5.4"
+    values:
+      - installGatewayAPI: {{ .Values | get "linkerd.installGatewayAPI" true }}
+
+  - name: linkerd-control-plane
+    namespace: '{{ .Values | get "linkerd.namespace" "linkerd" }}'
+    chart: linkerd-edge/linkerd-control-plane
+    version: "2025.5.4"
+    needs:
+      - '{{ .Values | get "linkerd.namespace" "linkerd" }}/linkerd-crds'
+    values:
+      - "./config/development/secrets/linkerd-secrets.yaml"
+      - proxyInit:
+          runAsRoot: true
+    hooks:
+      - name: "Wait for Linkerd CRDs to be established"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            CRDS_TO_WAIT_FOR=(
+              "authorizationpolicies.policy.linkerd.io"
+              "egressnetworks.policy.linkerd.io"
+              "externalworkloads.workload.linkerd.io"
+              "httplocalratelimitpolicies.policy.linkerd.io"
+              "httproutes.policy.linkerd.io"
+              "meshtlsauthentications.policy.linkerd.io"
+              "networkauthentications.policy.linkerd.io"
+              "serverauthorizations.policy.linkerd.io"
+              "servers.policy.linkerd.io"
+              "serviceprofiles.linkerd.io"
+            )
+            echo "Waiting for Linkerd CRDs to be established before deploying control-plane..."
+            for crd in "${CRDS_TO_WAIT_FOR[@]}"; do
+              echo "Waiting for CRD: $crd"
+              kubectl wait --for condition=established "crd/$crd" --timeout=180s
+            done
+            echo "All specified Linkerd CRDs are established."
+
+
+  - name: ingress
+    namespace: ingress
+    createNamespace: true 
+    chart: oci://ghcr.io/nginx/charts/nginx-ingress
+    version: 2.1.0
+    values:
+      - controller:
+          scope:
+            enabled: false # Disable scope to allow cross-namespace ingress
+
+  - name: chaos-mesh
+    values: 
+      - "./config/staging/values.yaml"
+    createNamespace: true
+    namespace: '{{ .Values | get "chaosMesh.namespace" "chaos-mesh" }}'
+    chart: chaos-mesh/chaos-mesh
+    version: "2.7.2"
+    needs:
+      - 'linkerd/linkerd-control-plane' 
+    installed: {{ .Values | get "chaosMesh.enabled" false }}
+
+
+
+          
+  - name: zipkin
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/zipkin
+    version: "1.0.0"
+    needs:
+      - "linkerd/linkerd-control-plane" 
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/zipkin-values.yaml"
+      
+      - values:
+        - "./config/{{ .Environment.Name }}/values.yaml"
+        - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
+        missingFileHandler: Skip
+
+    hooks:
+    - name: "Wait for linkerd-control-plane to be ready" # Este hook ya lo tienes y es bueno.
+      events: ["presync"]
+      showlogs: true
+      command: "bash"
+      args:
+        - "-c"
+        - |
+          set -e
+          NAMESPACE="linkerd"
+          echo "Waiting for all pods in Linkerd namespace ($NAMESPACE) to be Ready for Zipkin..."
+          kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=180s
+          echo "All Linkerd control-plane pods are ready."
+          sleep 10 
+
+  - name: discovery
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/discovery
+    version: "1.0.0"
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/zipkin'
+    hooks:
+      - name: "Wait for Zipkin service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS="{{ .Values | get "applicationNamespace" "default" }}"
+            echo "Waiting for Zipkin deployment in namespace $APP_NS to be available for Discovery..."
+            kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=300s
+            echo "Zipkin service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/discovery-values.yaml"
+      - values:
+        - "./config/{{ .Environment.Name }}/values.yaml"
+        - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+        missingFileHandler: Skip
+#------------------------------
+
 #------------------------------
 
 
