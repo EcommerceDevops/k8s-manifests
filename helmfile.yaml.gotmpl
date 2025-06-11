@@ -22,6 +22,15 @@ repositories:
     url: https://charts.chaos-mesh.org
 
 hooks:
+  - name: "Create prerequisite private-registry-sa ServiceAccount"
+    events: ["prepare"]
+    showlogs: true
+    command: "kubectl"
+    args:
+      - "apply"
+      - "-f"
+      - "./ksa/private-registry.yaml"
+      
   - name: "Annotate Default Namespace for Linkerd Injection"
     events: ["prepare"]
     showlogs: true
@@ -33,14 +42,7 @@ hooks:
       - "linkerd.io/inject=enabled"
       - "--overwrite"
 
-  - name: "Create prerequisite private-registry-sa ServiceAccount"
-    events: ["prepare"]
-    showlogs: true
-    command: "kubectl"
-    args:
-      - "apply"
-      - "-f"
-      - "./ksa/private-registry.yaml"
+
 
 ---
 releases:
@@ -89,8 +91,26 @@ releases:
             done
             echo "All specified Linkerd CRDs are established."
 
+  - name: ingress
+    namespace: ingress
+    createNamespace: true 
+    chart: oci://ghcr.io/nginx/charts/nginx-ingress
+    version: 2.1.0
+    values:
+      - controller:
+          scope:
+            enabled: false # Disable scope to allow cross-namespace ingress
 
-    
+  - name: chaos-mesh
+    values: 
+      - "./config/staging/values.yaml"
+    createNamespace: true
+    namespace: '{{ .Values | get "chaosMesh.namespace" "chaos-mesh" }}'
+    chart: chaos-mesh/chaos-mesh
+    version: "2.7.2"
+    needs:
+      - 'linkerd/linkerd-control-plane' 
+    installed: {{ .Values | get "chaosMesh.enabled" false }}
 
   - name: zipkin
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'
@@ -107,32 +127,25 @@ releases:
       
 
     hooks:
-    - name: "Wait for linkerd-control-plane to be ready" # Este hook ya lo tienes y es bueno.
-      events: ["presync"]
-      showlogs: true
-      command: "bash"
-      args:
-        - "-c"
-        - |
-          set -e
-          NAMESPACE="linkerd"
-          echo "Waiting for all pods in Linkerd namespace ($NAMESPACE) to be Ready for Zipkin..."
-          kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=600s
-          echo "All Linkerd control-plane pods are ready."
-          sleep 10 
+      - name: "Wait for linkerd-control-plane to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            NAMESPACE="linkerd"
+            echo "Waiting for Linkerd Deployments in namespace $NAMESPACE to be available for Zipkin..."
+            
+            # Espera por cada Deployment específico, no por todos los pods a la vez.
+            kubectl wait --for=condition=Available deployment/linkerd-destination -n "$NAMESPACE" --timeout=600s
+            kubectl wait --for=condition=Available deployment/linkerd-identity -n "$NAMESPACE" --timeout=600s
+            kubectl wait --for=condition=Available deployment/linkerd-proxy-injector -n "$NAMESPACE" --timeout=600s
+            
+            echo "All Linkerd control-plane Deployments are ready."
+            sleep 10
           
-    - name: "Confirm Zipkin deployment is ready"
-      events: ["postsync"] # Se ejecuta DESPUÉS de instalar zipkin
-      showlogs: true
-      command: "bash"
-      args:
-        - "-c"
-        - |
-          set -e
-          APP_NS="{{ .Values | get "applicationNamespace" "default" }}"
-          echo "Waiting for Zipkin deployment in namespace $APP_NS to be available..."
-          kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=600s
-          echo "Zipkin is confirmed to be ready."
 
   - name: discovery
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'

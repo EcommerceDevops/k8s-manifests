@@ -1,8 +1,0 @@
-  - name: "Create prerequisite private-registry-sa ServiceAccount"
-    events: ["prepare"]
-    showlogs: true
-    command: "kubectl"
-    args:
-      - "apply"
-      - "-f"
-      - "./ksa/private-registry.yaml"
