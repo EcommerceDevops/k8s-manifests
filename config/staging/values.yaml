@@ -3,3 +3,9 @@
 chaosMesh:
   enabled: true
   namespace: chaos-mesh
+
+image:
+  tag: latest
+  
+serviceAccount:
+  name: private-registry-sa

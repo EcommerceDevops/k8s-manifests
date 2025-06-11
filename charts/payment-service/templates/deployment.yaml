@@ -14,6 +14,9 @@ spec:
       labels:
         app: {{ include "payment-service.name" . }}
     spec:
+      {{- if and .Values.serviceAccount .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
       containers:
         - name: payment-service
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -14,6 +14,9 @@ spec:
       labels:
         app: {{ include "order-service.name" . }}
     spec:
+      {{- if and .Values.serviceAccount .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
       containers:
         - name: order-service
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

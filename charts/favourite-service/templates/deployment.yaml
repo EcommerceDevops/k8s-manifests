@@ -14,6 +14,9 @@ spec:
       labels:
         app: {{ include "favourite-service.name" . }}
     spec:
+      {{- if and .Values.serviceAccount .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
       containers:
         - name: {{ include "favourite-service.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

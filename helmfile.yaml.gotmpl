@@ -157,6 +157,240 @@ releases:
     values:
       - "./config/default/values.yaml"
       - "./config/default/discovery-values.yaml"     
+      - "./config/{{ .Environment.Name }}/values.yaml"
       - "./config/{{ .Environment.Name }}/discovery-values.yaml"
-        #- "./config/{{ .Environment.Name }}/values.yaml"
+      
         
+  - name: cloud-config
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/cloud-config
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/discovery'
+    hooks:
+      - name: "Wait for Discovery service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Discovery deployment in namespace $APP_NS to be available for Cloud-Config..."
+            kubectl wait --for=condition=Available deployment/discovery -n "$APP_NS" --timeout=300s
+            echo "Discovery service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/cloud-config-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/cloud-config-values.yaml"
+
+  - name: api-gateway
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/api-gateway
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for API-Gateway..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/api-gateway-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/api-gateway-values.yaml"
+
+  - name: proxy-client
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/proxy-client
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Proxy-Client..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/proxy-client-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/proxy-client-values.yaml"
+
+  - name: user-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/user-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for User-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for User-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/user-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/user-service-values.yaml"
+
+  - name: favourite-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/favourite-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Favourite-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for Favourite-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/favourite-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/favourite-service-values.yaml"
+
+  - name: order-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/order-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Order-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for Order-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/order-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/order-service-values.yaml"
+
+  - name: payment-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/payment-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Payment-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for Payment-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/payment-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/payment-service-values.yaml"
+
+  - name: product-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/product-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Product-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for Product-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/product-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/product-service-values.yaml"
+
+  - name: shipping-service
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/shipping-service
+    version: "1.0.0"
+    missingFileHandler: Info
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/cloud-config'
+    hooks:
+      - name: "Wait for Cloud-Config service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS='{{ .Values | get "applicationNamespace" "default" }}'
+            echo "Waiting for Cloud-Config deployment in namespace $APP_NS to be available for Shipping-Service..."
+            kubectl wait --for=condition=Available deployment/cloud-config -n "$APP_NS" --timeout=300s
+            echo "Cloud-Config service is ready for Shipping-Service."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/shipping-service-values.yaml"
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/shipping-service-values.yaml"
