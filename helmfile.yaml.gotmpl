@@ -109,16 +109,15 @@ releases:
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'
     chart: ./charts/zipkin
     version: "1.0.0"
+    missingFileHandler: Info 
     needs:
       - "linkerd/linkerd-control-plane" 
     values:
       - "./config/default/values.yaml"
-      - "./config/default/zipkin-values.yaml"
+      - "./config/default/zipkin-values.yaml" 
+      - "./config/{{ .Environment.Name }}/values.yaml"
+      - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
       
-      - values:
-        - "./config/{{ .Environment.Name }}/values.yaml"
-        - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
-        missingFileHandler: Skip
 
     hooks:
     - name: "Wait for linkerd-control-plane to be ready" # Este hook ya lo tienes y es bueno.
@@ -135,3 +134,29 @@ releases:
           echo "All Linkerd control-plane pods are ready."
           sleep 10 
 
+  - name: discovery
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/discovery
+    version: "1.0.0"
+    missingFileHandler: Info 
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/zipkin'
+    hooks:
+      - name: "Wait for Zipkin service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS="{{ .Values | get "applicationNamespace" "default" }}"
+            echo "Waiting for Zipkin deployment in namespace $APP_NS to be available for Discovery..."
+            kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=300s
+            echo "Zipkin service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/discovery-values.yaml"     
+      - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+        #- "./config/{{ .Environment.Name }}/values.yaml"
+        

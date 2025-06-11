@@ -1,4 +1,9 @@
 
+
+us-east4-docker.pkg.dev/ecommerce-devops-utils/ecommerce-registry/${{ inputs.IMAGE_NAME }}
+
+
+
   - name: discovery
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'
     chart: ./charts/discovery
