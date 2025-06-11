@@ -101,6 +101,7 @@ releases:
           scope:
             enabled: false # Disable scope to allow cross-namespace ingress
 
+
   - name: chaos-mesh
     values: 
       - "./config/staging/values.yaml"
@@ -111,6 +112,28 @@ releases:
     needs:
       - 'linkerd/linkerd-control-plane' 
     installed: {{ .Values | get "chaosMesh.enabled" false }}
+    hooks:
+      - name: "Apply ingress for Chaos Dashboard when ingress and chaos-mesh are installed"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            # Salir inmediatamente si un comando falla
+            set -e
+            
+            echo "Verifying that Ingress Controller is ready..."
+            kubectl wait --for=condition=Available deployment/ingress-nginx-ingress-controller -n "ingress" --timeout=600s
+            echo "✅ Ingress Controller is ready."
+            
+            echo "Verifying that Chaos Mesh is ready..."
+            kubectl wait --for=condition=Available deployment/chaos-dashboard -n "chaos-mesh" --timeout=600s
+            echo "✅ Chaos Mesh is ready."
+            
+            echo "All dependencies are ready. Applying Ingress for Chaos Dashboard..."
+            kubectl apply -f "charts/chaos-mesh/chaos-service.yaml"
+            echo "🚀 Ingress for Chaos Dashboard applied successfully."
 
   - name: zipkin
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'
@@ -125,7 +148,6 @@ releases:
       - "./config/{{ .Environment.Name }}/values.yaml"
       - "./config/{{ .Environment.Name }}/zipkin-values.yaml"
       
-
     hooks:
       - name: "Wait for linkerd-control-plane to be ready"
         events: ["presync"]
