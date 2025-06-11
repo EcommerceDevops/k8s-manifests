@@ -134,6 +134,11 @@ releases:
             echo "All dependencies are ready. Applying Ingress for Chaos Dashboard..."
             kubectl apply -f "charts/chaos-mesh/chaos-service.yaml"
             echo "🚀 Ingress for Chaos Dashboard applied successfully."
+            kubectl apply -f charts/chaos-mesh/rbac.yaml 
+            echo "🚀 RBAC for token generation applied successfully."
+
+
+
 
   - name: zipkin
     namespace: '{{ .Values | get "applicationNamespace" "default" }}'
