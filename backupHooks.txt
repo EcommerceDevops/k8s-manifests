@@ -1,4 +1,32 @@
+
+  - name: discovery
+    namespace: '{{ .Values | get "applicationNamespace" "default" }}'
+    chart: ./charts/discovery
+    version: "1.0.0"
+    needs:
+      - '{{ .Values | get "applicationNamespace" "default" }}/zipkin'
+    hooks:
+      - name: "Wait for Zipkin service to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            APP_NS="{{ .Values | get "applicationNamespace" "default" }}"
+            echo "Waiting for Zipkin deployment in namespace $APP_NS to be available for Discovery..."
+            kubectl wait --for=condition=Available deployment/zipkin -n "$APP_NS" --timeout=300s
+            echo "Zipkin service is ready."
+    values:
+      - "./config/default/values.yaml"
+      - "./config/default/discovery-values.yaml"
+      - values:
+        - "./config/{{ .Environment.Name }}/values.yaml"
+        - "./config/{{ .Environment.Name }}/discovery-values.yaml"
+        missingFileHandler: Skip
 #------------------------------
+
 
 
   - name: cloud-config
