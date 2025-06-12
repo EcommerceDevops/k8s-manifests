@@ -100,6 +100,44 @@ releases:
             done
             echo "All specified Linkerd CRDs are established."
 
+  
+  - name: linkerd-viz 
+    namespace: linkerd-viz 
+    chart: linkerd/linkerd-viz 
+    version: 30.12.11
+    createNamespace: true
+    hooks:
+      - name: "Wait for Linkerd Control Plane to be ready"
+        events: ["presync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+            NAMESPACE="linkerd"
+            echo "Waiting for Linkerd Deployments in namespace $NAMESPACE to be available for Viz..."
+            kubectl wait --for=condition=Available deployment/linkerd-destination -n "$NAMESPACE" --timeout=600s
+            kubectl wait --for=condition=Available deployment/linkerd-identity -n "$NAMESPACE" --timeout=600s
+            kubectl wait --for=condition=Available deployment/linkerd-proxy-injector -n "$NAMESPACE" --timeout=600s
+            echo "All Linkerd control-plane Deployments are ready."
+      - name: "Allow linkerd to inject into the viz namespace"
+        events: ["posync"]
+        showlogs: true
+        command: "bash"
+        args:
+          - "-c"
+          - |
+            set -e
+
+            echo "Annotating linkerd-viz namespace for Linkerd injection..."
+            kubectl annotate namespace linkerd-viz linkerd.io/inject=enabled --overwrite
+            echo "✅ Namespace linkerd-viz annotated for Linkerd injection."
+            echo "Allow linkerd-viz scrapes for default injection..."
+            linkerd viz allow-scrapes --namespace {{ .Values | get "applicationNamespace" "default" }} | kubectl apply -f -
+            echo "✅ Namespace linkerd-viz annotated for Linkerd injection."
+
+
   - name: ingress
     namespace: ingress
     createNamespace: true 
