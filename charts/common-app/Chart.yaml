@@ -1,0 +1,11 @@
+apiVersion: v2
+name: common-app
+description: Helm chart for commons apps
+type: application
+version: 0.1.0         
+appVersion: "0.1.0"    
+keywords:
+  - eureka
+  - spring-cloud
+  - service-discovery
+  - microservice

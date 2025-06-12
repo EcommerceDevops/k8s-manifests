@@ -11,7 +11,7 @@ spec:
       app: {{ include "discovery.name" . }}
   template:
     metadata:
-      labels:
+      labels: 
         app: {{ include "discovery.name" . }}
     spec:
       {{- if and .Values.serviceAccount .Values.serviceAccount.name }}

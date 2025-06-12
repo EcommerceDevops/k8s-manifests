@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: {{ include "common-app.fullname" . }}
+  labels:
+    {{- include "common-app.labels" . | nindent 4 }}
+spec:
+  # El 'parentRef' apunta al Service principal que recibe todo el tráfico.
+  # Necesitamos crear este service también. (Ver nota abajo)
+  parentRefs:
+    - name: {{ include "common-app.fullname" . }}
+      kind: Service
+      group: "" # core group
+      port: {{ .Values.service.port }}
+  
+  # Las reglas de backend que Argo Rollouts manipulará
+  rules:
+    - backendRefs:
+        # Por defecto apunta 100% al estable. Argo cambiará los pesos aquí.
+        - name: {{ include "common-app.fullname" . }}-stable
+          port: {{ .Values.service.port }}
+          weight: 100
+        - name: {{ include "common-app.fullname" . }}-canary
+          port: {{ .Values.service.port }}
+          weight: 0

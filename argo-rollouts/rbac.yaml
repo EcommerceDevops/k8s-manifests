@@ -1,0 +1,32 @@
+# argo-rollouts-permissions.yaml (Final and Complete Version)
+
+# 1. The Role: Now includes permissions for ConfigMaps AND HTTPRoutes.
+# Renamed for clarity.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-rollouts-app-namespace-permissions # More descriptive name
+  namespace: default # This Role grants permissions within the 'default' namespace
+rules:
+- apiGroups: [""] # Core API group
+  resources: ["configmaps"] # Allows management of ConfigMaps
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["gateway.networking.k8s.io"] # API group for Gateway API resources
+  resources: ["httproutes"] # Specifically targets HTTPRoute resources
+  verbs: ["get", "list", "watch", "update", "patch"] # Permissions to manage (read and modify) HTTPRoutes
+---
+# 2. The RoleBinding: Now points to the new Role name.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-rollouts-app-namespace-permissions-binding # Updated name for the binding
+  namespace: default # This RoleBinding applies within the 'default' namespace
+subjects:
+  - kind: ServiceAccount
+    name: argo-rollouts # The ServiceAccount to which these permissions are granted
+    namespace: argo-rollouts # The namespace where the 'argo-rollouts' ServiceAccount resides
+roleRef:
+  kind: Role
+  name: argo-rollouts-app-namespace-permissions # Points to the newly named Role
+  apiGroup: rbac.authorization.k8s.io # API group for RBAC resources

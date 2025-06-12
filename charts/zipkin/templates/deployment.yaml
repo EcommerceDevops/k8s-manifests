@@ -8,7 +8,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "zipkin.name" . }}
+      app: {{ include "zipkin.name" . }}  
   template:
     metadata:
       labels:

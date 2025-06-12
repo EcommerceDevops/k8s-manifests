@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "common-app.fullname" . }}
+  labels:
+    {{- include "common-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common-app.selectorLabels" . | nindent 6 }}
+  
+  # Estrategia Canary
+  strategy:
+    canary:
+      # Nombres de los services que usará Argo Rollouts
+      canaryService: {{ include "common-app.fullname" . }}-canary
+      stableService: {{ include "common-app.fullname" . }}-stable
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: {{ include "common-app.fullname" . }} # El nombre de nuestro HTTPRoute
+            namespace: {{ .Release.Namespace }} 
+      steps:
+        - setWeight: 30
+        - pause: { duration: 10 }
+        - setWeight: 40
+        - pause: { duration: 10 }
+        - setWeight: 60
+        - pause: { duration: 10 }
+        - setWeight: 80
+        - pause: { duration: 10 }
+  
+  template:
+    metadata:
+      labels:
+        {{- include "common-app.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          {{- end }}
