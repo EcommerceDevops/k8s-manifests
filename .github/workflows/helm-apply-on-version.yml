@@ -1,0 +1,23 @@
+name: CI/CD Pipeline - Build and Deploy on Main Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  
+  call_deployment_workflow:
+    name: 2. Call Deployment Workflow
+    
+    uses: EcommerceDevops/workflows/.github/workflows/helmfile-sync.yml@main
+    with:
+
+      gke_cluster_name: 'prod-gke-cluster'
+      gke_cluster_location: 'us-central1'
+      environment: 'production'
+
+    secrets:
+
+      GCP_SA_KEY: ${{ secrets.GCP_PROD_SA_BLUEGREEN }}
+      GH_TOKEN: ${{ secrets.WORKFLOW_PAT_ADMIN }}
