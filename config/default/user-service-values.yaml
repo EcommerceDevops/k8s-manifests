@@ -1,4 +1,4 @@
-fullnameOverride: user-service-common-app
+fullnameOverride: user-service
 
 replicaCount: 1
 
@@ -12,3 +12,15 @@ containerPort: 8700
 
 readinessProbe:
   path: /user-service/actuator/health
+
+env:
+  - name: EUREKA_INSTANCE_HOSTNAME
+    value: "user-service"
+  - name: EUREKA_INSTANCE_ID  
+    value: "user-service:8700"
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka

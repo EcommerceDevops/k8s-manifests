@@ -1,0 +1,6 @@
+# ./config/staging/values.yaml
+image:
+  tag: latest
+  
+serviceAccount:
+  name: private-registry-sa

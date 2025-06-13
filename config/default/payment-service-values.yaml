@@ -10,3 +10,18 @@ service:
 readinessProbe:
   path: /payment-service/actuator/health
   port: 8400
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka
+  - name: EUREKA_INSTANCE_HOSTNAME
+    value: "payment-service"
+  - name: EUREKA_INSTANCE_ID  
+    value: "payment-service:8400"
+
+
+  

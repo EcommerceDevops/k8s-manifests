@@ -11,3 +11,15 @@ readinessProbe:
   path: /app/actuator/health
   port: 8900
 
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka
+  - name: EUREKA_INSTANCE_HOSTNAME
+    value: "proxy-client"
+  - name: EUREKA_INSTANCE_ID  
+    value: "proxy-client:8900"
+

@@ -11,3 +11,14 @@ readinessProbe:
   path: /actuator/health
   port: 9296
 
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka
+  - name: EUREKA_INSTANCE_HOSTNAME
+    value: "cloud-config"
+  - name: EUREKA_INSTANCE_ID  
+    value: "cloud-config:9296"

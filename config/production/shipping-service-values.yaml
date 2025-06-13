@@ -1,0 +1,4 @@
+image:
+  repository: us-east4-docker.pkg.dev/ecommerce-devops-utils/ecommerce-registry/shipping-service-ecommerce-boot
+  
+

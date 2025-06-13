@@ -9,7 +9,12 @@ environments:
   staging:
     values:
       - "./config/default/values.yaml"
-      - "./config/staging/values.yaml" # Has the chaos mesh basic configuration on ir
+      - "./config/staging/values.yaml" #
+
+  production:
+    values:
+      - "./config/default/values.yaml"
+      - "./config/production/values.yaml" #
         
 repositories:
   - name: linkerd-edge
@@ -69,7 +74,7 @@ releases:
     needs:
       - '{{ .Values | get "linkerd.namespace" "linkerd" }}/linkerd-crds'
     values:
-      - "./config/development/secrets/linkerd-secrets.yaml"
+      - "./config/{{ .Environment.Name }}/secrets/linkerd-secrets.yaml"
       - proxyInit:
           runAsRoot: true
     hooks:
@@ -106,6 +111,9 @@ releases:
     chart: linkerd/linkerd-viz 
     version: 30.12.11
     createNamespace: true
+
+    needs:
+      - "linkerd/linkerd-control-plane" 
     hooks:
       - name: "Wait for Linkerd Control Plane to be ready"
         events: ["presync"]
@@ -161,7 +169,7 @@ releases:
     installed: {{ .Values | get "chaosMesh.enabled" false }}
     hooks:
       - name: "Apply ingress for Chaos Dashboard when ingress and chaos-mesh are installed"
-        events: ["presync"]
+        events: ["postsync"]
         showlogs: true
         command: "bash"
         args:

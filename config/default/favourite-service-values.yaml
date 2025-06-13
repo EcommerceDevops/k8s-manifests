@@ -1,3 +1,4 @@
+fullnameOverride: favourite-service
 replicaCount: 1
 
 image:
@@ -11,3 +12,15 @@ containerPort: 8800
 
 readinessProbe:
   path: /favourite-service/actuator/health
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: dev
+  - name: SPRING_ZIPKIN_BASE_URL
+    value: http://zipkin:9411/    
+  - name: eureka.client.service-url.defaultZone
+    value: http://discovery:8761/eureka
+  - name: EUREKA_INSTANCE_HOSTNAME
+    value: "favourite-service"
+  - name: EUREKA_INSTANCE_ID  
+    value: "favourite-service:8800"

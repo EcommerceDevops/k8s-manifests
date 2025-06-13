@@ -10,3 +10,10 @@ service:
 readinessProbe:
   path: /actuator/health
   port: 8761
+
+
+env:
+- name: EUREKA_INSTANCE_HOSTNAME
+  value: "discovery"
+- name: EUREKA_INSTANCE_ID  
+  value: "discovery:8761"

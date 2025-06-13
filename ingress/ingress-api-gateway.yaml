@@ -1,0 +1,29 @@
+# api-gateway-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway-ingress
+  # Asegúrate de que esté en el mismo namespace que tu servicio
+  namespace: default
+  # Anotaciones opcionales, pero a menudo necesarias.
+  # Por ejemplo, para un Ingress de NGINX, podrías necesitar:
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  # ❗ IMPORTANTE: Reemplaza 'nginx' con el nombre de tu IngressClass.
+  # Para GKE, puede ser 'gke-l7-gclb' o 'gke-l7-gclb-internal'.
+  ingressClassName: nginx
+  rules:
+    # ❗ IMPORTANTE: Reemplaza 'api.tu-dominio.com' con tu dominio real.
+  - host: prod.lkdlas.icu  
+    http:
+      paths:
+      # Esta regla captura CUALQUIER path que llegue al host especificado.
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            # Apunta al Service principal de tu api-gateway, no al 'canary' o 'stable'.
+            name: api-gateway
+            port:
+              number: 8080
