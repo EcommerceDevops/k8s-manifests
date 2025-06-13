@@ -13,13 +13,12 @@ spec:
   # Estrategia Canary
   strategy:
     canary:
-      # Nombres de los services que usará Argo Rollouts
       canaryService: {{ include "common-app.fullname" . }}-canary
       stableService: {{ include "common-app.fullname" . }}-stable
-      trafficRouting:
+      trafficRouting: 
         plugins:
           argoproj-labs/gatewayAPI:
-            httpRoute: {{ include "common-app.fullname" . }} # El nombre de nuestro HTTPRoute
+            httpRoute: {{ include "common-app.fullname" . }}
             namespace: {{ .Release.Namespace }} 
       steps:
         - setWeight: 30
@@ -30,7 +29,7 @@ spec:
         - pause: { duration: 10 }
         - setWeight: 80
         - pause: { duration: 10 }
-  
+
   template:
     metadata:
       labels:

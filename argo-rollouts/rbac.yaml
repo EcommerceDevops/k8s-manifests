@@ -1,32 +1,60 @@
-# argo-rollouts-permissions.yaml (Final and Complete Version)
-
-# 1. The Role: Now includes permissions for ConfigMaps AND HTTPRoutes.
-# Renamed for clarity.
+# ================================================================
+# Role in 'default' namespace: Manage ConfigMaps and HTTPRoutes
+# ================================================================
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: argo-rollouts-app-namespace-permissions # More descriptive name
-  namespace: default # This Role grants permissions within the 'default' namespace
+  name: argo-rollouts-app-namespace-permissions
+  namespace: default
 rules:
-- apiGroups: [""] # Core API group
-  resources: ["configmaps"] # Allows management of ConfigMaps
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Allow Argo Rollouts to manage ConfigMaps in the default namespace
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-- apiGroups: ["gateway.networking.k8s.io"] # API group for Gateway API resources
-  resources: ["httproutes"] # Specifically targets HTTPRoute resources
-  verbs: ["get", "list", "watch", "update", "patch"] # Permissions to manage (read and modify) HTTPRoutes
+  # Allow updating HTTPRoutes (for Gateway API traffic switching)
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+
 ---
-# 2. The RoleBinding: Now points to the new Role name.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: argo-rollouts-app-namespace-permissions-binding # Updated name for the binding
-  namespace: default # This RoleBinding applies within the 'default' namespace
+  name: argo-rollouts-app-namespace-permissions-binding
+  namespace: default
 subjects:
   - kind: ServiceAccount
-    name: argo-rollouts # The ServiceAccount to which these permissions are granted
-    namespace: argo-rollouts # The namespace where the 'argo-rollouts' ServiceAccount resides
+    name: argo-rollouts
+    namespace: argo-rollouts  # The namespace where the controller runs
 roleRef:
   kind: Role
-  name: argo-rollouts-app-namespace-permissions # Points to the newly named Role
-  apiGroup: rbac.authorization.k8s.io # API group for RBAC resources
+  name: argo-rollouts-app-namespace-permissions
+  apiGroup: rbac.authorization.k8s.io
+---
+# ================================================================
+# ClusterRole: Allow Argo Rollouts to proxy access to Prometheus
+# ================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-rollouts-prometheus-access
+rules:
+  # Allow proxy GET access to services and pods (specifically Prometheus)
+  - apiGroups: [""]
+    resources: ["services", "services/proxy", "pods", "pods/proxy"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-rollouts-prometheus-access-binding
+subjects:
+  - kind: ServiceAccount
+    name: argo-rollouts
+    namespace: argo-rollouts
+roleRef:
+  kind: ClusterRole
+  name: argo-rollouts-prometheus-access
+  apiGroup: rbac.authorization.k8s.io

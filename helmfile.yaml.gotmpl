@@ -47,12 +47,12 @@ hooks:
     args:
       - "-c"
       - |
-        # Salir inmediatamente si un comando falla
         set -e
         kubectl create namespace argo-rollouts || true
         kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
         kubectl apply -n argo-rollouts -f ./argo-rollouts/gateway-plugin.yaml
-        kubectl apply  -f ./argo-rollouts/rbac.yaml
+        kubectl apply -f ./argo-rollouts/rbac.yaml
+
 ---
 releases:
   - name: linkerd-crds
@@ -192,6 +192,7 @@ releases:
     missingFileHandler: Info 
     needs:
       - "linkerd/linkerd-control-plane" 
+      - 'linkerd-viz/linkerd-viz'
     values:
       - "./config/default/values.yaml"
       - "./config/default/zipkin-values.yaml" 
