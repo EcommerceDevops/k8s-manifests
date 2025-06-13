@@ -1,0 +1,20 @@
+name: Manual Deploy to Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  call_deployment_workflow:
+    name: Call Production Deployment Workflow
+    
+    uses: EcommerceDevops/workflows/.github/workflows/helmfile-sync.yml@main
+    with:
+      # --- Valores cambiados para el ambiente de producción ---
+      gke_cluster_name: 'production-gke-cluster'
+      gke_cluster_location: 'us-central1'
+      environment: 'production'
+
+    secrets:
+      # --- Secreto cambiado para el ambiente de producción ---
+      GCP_SA_KEY: ${{ secrets.GCP_PROD_SA_BLUEGREEN }}
+      GH_TOKEN: ${{ secrets.WORKFLOW_PAT_ADMIN }}
